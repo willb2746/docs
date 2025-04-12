@@ -1,7 +1,7 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
-  "name": "Mint Starter Kit",
+  "name": "Phonely API Documentation",
   "colors": {
     "primary": "#16A34A",
     "light": "#07C983",
@@ -18,38 +18,42 @@
             "pages": [
               "introduction",
               "quickstart",
-              "development"
+              {
+                "group": "Tutorials",
+                "icon": "book-open",
+                "pages": [
+                  "tutorials/chatbot",
+                  "tutorials/function-calling",
+                  "tutorials/streaming-responses",
+                  "tutorials/image-analysis"
+                ]
+              }
             ]
           },
           {
             "group": "Essentials",
             "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/settings",
-              "essentials/navigation",
-              "essentials/reusable-snippets"
+              "essentials/models",
+              "essentials/state-management",
+              "essentials/variables",
+              "essentials/chat-completion",
+              "essentials/latency"
             ]
           }
         ]
       },
       {
         "tab": "API Reference",
+        "path": "api-reference/index",
         "groups": [
           {
-            "group": "API Documentation",
+            "group": "Phonely API",
             "pages": [
-              "api-reference/introduction"
-            ]
-          },
-          {
-            "group": "Endpoint Examples",
-            "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "api-reference/index",
+              {
+                "group": "Fast Completions",
+                "pages": ["api-reference/chat/create-response"]
+              }
             ]
           }
         ]
@@ -83,20 +87,20 @@
     "links": [
       {
         "label": "Support",
-        "href": "mailto:hi@mintlify.com"
+        "href": "mailto:hi@phonely.ai"
       }
     ],
     "primary": {
       "type": "button",
       "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
+      "href": "https://dashboard.phonely.ai"
     }
   },
   "footer": {
     "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
+      "x": "https://x.com/phonelyai",
+      "github": "https://github.com/phonely",
+      "linkedin": "https://linkedin.com/company/phonely"
     }
   }
 }

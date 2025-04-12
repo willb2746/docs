@@ -1,0 +1,568 @@
+---
+title: 'Create Fast Completion'
+api: 'POST https://fast.phonely.ai/openai/v1/responses'
+description: 'Creates a state-based model response with configurable nodes and transitions.'
+sidebarTitle: 'Fast Completion'
+codeBlocks:
+  - title: 'Example Request'
+    language: 'python'
+    code: |
+      from openai import OpenAI
+
+      client = OpenAI()
+
+      response = client.responses.create(
+        model="phonely-fast-1",
+        input=[
+          {
+            "role": "user",
+            "content": "Hello!"
+          }
+        ],
+        stream=True
+      )
+
+      for event in response:
+        print(event)
+---
+
+Creates a model response using a state-based approach with configurable nodes and transitions.
+
+## Request Body
+
+<ParamField body="model" type="string" required>
+  ID of the model to use. For details on which models are compatible with the API, see [available models](https://phonely.ai/essentials/models).
+</ParamField>
+
+<ParamField body="input" type="array" required>
+  An array of message objects representing the conversation history. This follows the same format as OpenAI's messages parameter.
+  
+  <Expandable title="Message Structure">
+    <ResponseField name="messages" type="array">
+      An array of message objects, each with the following structure:
+      
+      <ResponseField name="role" type="string" required>
+        The role of the message. Must be one of:
+        - `system`: Provides instructions or context to guide the model's behavior
+        - `user`: Represents messages from the end user
+        - `assistant`: Represents previous responses from the model
+        - `tool`: Represents responses from tool calls
+      </ResponseField>
+      
+      <ResponseField name="content" type="string" required>
+        The content of the message. For user and system messages, this is the input text.
+        For assistant messages, this is the response text from a previous interaction.
+        For tool messages, this is the output of the tool call.
+      </ResponseField>
+      
+      <ResponseField name="tool_call_id" type="string">
+        Required for tool messages. The ID of the tool call this message is responding to.
+      </ResponseField>
+    </ResponseField>
+  </Expandable>
+</ParamField>
+
+<ParamField body="states" type="object" required>
+  A custom configuration that extends OpenAI's API with state-based processing. This parameter is unique to Phonely's implementation and allows for more complex conversation flows.
+  
+  <Expandable title="States Structure">
+
+    
+    <ResponseField name="append_system_prompt" type="boolean" default={false}>
+      When set to true, system prompts will be appended instead of replacing previous ones. Default is false.
+    </ResponseField>
+    
+    <ResponseField name="nodes" type="array" required>
+      An array of node objects that define the processing steps. Each node must be one of the following types:
+      
+      <ResponseField name="talk" type="object">
+        A node that uses the language model to generate a response.
+        
+        <Expandable title="talk Configuration">
+          <ResponseField name="type" type="string" required>
+            Must be set to `talk`.
+          </ResponseField>
+          
+          <ResponseField name="id" type="string">
+            A unique identifier for the node. If not provided, an ID will be automatically generated.
+          </ResponseField>
+          
+          <ResponseField name="transition_condition" type="object" required>
+            Conditions that determine when to transition INTO this node.
+            
+            <Expandable title="Transition Condition Structure">
+              <ResponseField name="condition" type="string" required>
+                A condition expression that determines if this node should be entered.
+              </ResponseField>
+              
+              <ResponseField name="required_variables" type="array">
+                Variables that must be present in the state before this node can execute.
+                
+                <Expandable title="Required Variables Structure">
+                  <ResponseField name="variable_id" type="string" required>
+                    The identifier of the required variable.
+                  </ResponseField>
+                </Expandable>
+              </ResponseField>
+            </Expandable>
+          </ResponseField>
+          
+          <ResponseField name="system_prompt" type="string">
+            The system prompt to provide context to the model.
+          </ResponseField>
+          
+          <ResponseField name="tools" type="array">
+            A list of tools the model may call.
+          </ResponseField>
+          
+          <ResponseField name="state" type="object">
+            State variables to be used in the conversation.
+          </ResponseField>
+          
+          <ResponseField name="content" type="array">
+            An array containing the complete nested request structure.
+          </ResponseField>
+        </Expandable>
+      </ResponseField>
+      
+      <ResponseField name="api_request" type="object">
+        A node that makes an API request to an external service.
+        
+        <Expandable title="api_request Configuration">
+          <ResponseField name="type" type="string" required>
+            Must be set to `api_request`.
+          </ResponseField>
+          
+          <ResponseField name="id" type="string">
+            A unique identifier for the node. If not provided, an ID will be automatically generated.
+          </ResponseField>
+          
+          <ResponseField name="transition_condition" type="object" required>
+            Conditions that determine when to transition INTO this node.
+            
+            <Expandable title="Transition Condition Structure">
+              <ResponseField name="condition" type="string" required>
+                A condition expression that determines if this node should be entered.
+              </ResponseField>
+              
+              <ResponseField name="required_variables" type="array">
+                Variables that must be present in the state before this node can execute.
+                
+                <Expandable title="Required Variables Structure">
+                  <ResponseField name="variable_id" type="string" required>
+                    The identifier of the required variable.
+                  </ResponseField>
+                </Expandable>
+              </ResponseField>
+            </Expandable>
+          </ResponseField>
+          
+          <ResponseField name="endpoint" type="string" required>
+            The API endpoint to call.
+          </ResponseField>
+          
+          <ResponseField name="method" type="string" required>
+            The HTTP method to use (GET, POST, etc.).
+          </ResponseField>
+          
+          <ResponseField name="headers" type="object">
+            Headers to include in the request.
+          </ResponseField>
+          
+          <ResponseField name="body" type="object">
+            Body parameters to include in the request.
+          </ResponseField>
+          
+          <ResponseField name="content" type="array">
+            An array containing the complete nested request structure.
+          </ResponseField>
+        </Expandable>
+      </ResponseField>
+    </ResponseField>
+  </Expandable>
+</ParamField>
+
+<ParamField body="tools" type="array">
+  A list of tools the model may use during the response generation.
+  
+  <Expandable title="Tool Structure">
+    <ResponseField name="Tool message" type="object">
+      A message returned by a tool after being called.
+      
+      <Expandable title="Properties">
+        <ResponseField name="content" type="string | array" required>
+          The contents of the tool message.
+        </ResponseField>
+        
+        <ResponseField name="role" type="string" required>
+          The role of the messages author, in this case tool.
+        </ResponseField>
+        
+        <ResponseField name="tool_call_id" type="string" required>
+          Tool call that this message is responding to.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ParamField>
+
+<ParamField body="variables" type="array">
+  Variables that can be used throughout the response flow. Unlike OpenAI's tool calling system which is for function execution, variables are used for state management and data extraction throughout the conversation.
+  
+  <Expandable title="Variable Structure">
+    <ResponseField name="variable_name" type="string" required>
+      The human-readable name of the variable.
+    </ResponseField>
+    
+    <ResponseField name="variable_id" type="string" required>
+      The unique identifier for the variable that can be referenced in nodes and transition conditions.
+    </ResponseField>
+    
+    <ResponseField name="extraction_description" type="string" required>
+      Description of how the variable should be extracted or what it represents. This guides the model in extracting the correct information.
+    </ResponseField>
+    
+    <ResponseField name="format" type="object">
+      Specification for the expected format of the variable value. This helps ensure data consistency and type safety.
+      
+      <ResponseField name="type" type="string" required>
+        The data type of the variable. Must be one of:
+        - `string`: A text value
+        - `number`: A numeric value
+        - `boolean`: A true/false value
+        - `list`: A selection from predefined options
+        - `object`: A structured data object
+      </ResponseField>
+      
+      <ResponseField name="description" type="string">
+        Additional description about the expected format.
+      </ResponseField>
+      
+      <ResponseField name="options" type="array">
+        Required when type is `list`. The available options to choose from.
+      </ResponseField>
+    </ResponseField>
+  </Expandable>
+</ParamField>
+
+<ParamField body="stream" type="boolean" default={false}>
+  Whether to stream the response events as they're generated.
+</ParamField>
+
+## Response
+
+<ResponseField name="id" type="string">
+  A unique identifier for the response.
+</ResponseField>
+
+<ResponseField name="object" type="string">
+  The object type, which is always "response".
+</ResponseField>
+
+<ResponseField name="created" type="integer">
+  The Unix timestamp (in seconds) of when the response was created.
+</ResponseField>
+
+<ResponseField name="model" type="string">
+  The model used for the response.
+</ResponseField>
+
+<ResponseField name="events" type="array">
+  An array of events generated during the response process. When streaming is enabled, these events are delivered as they occur.
+  
+  <Expandable title="Event Structure">
+    <ResponseField name="type" type="string">
+      The type of event (e.g., "node_start", "node_complete", "content", etc.).
+    </ResponseField>
+    
+    <ResponseField name="node_id" type="string">
+      The ID of the node this event relates to.
+    </ResponseField>
+    
+    <ResponseField name="content" type="string">
+      The content generated by this event (for content events).
+    </ResponseField>
+    
+    <ResponseField name="timestamp" type="integer">
+      The timestamp of when this event occurred.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="usage" type="object">
+  Usage statistics for the response.
+  
+  <Expandable title="properties">
+    <ResponseField name="total_tokens" type="integer">
+      Total number of tokens used in the request.
+    </ResponseField>
+    
+    <ResponseField name="total_time" type="number">
+      Total processing time in seconds.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Example
+
+<CodeGroup>
+```python Python
+from openai import OpenAI
+
+client = OpenAI()
+
+response = client.responses.create(
+  model="phonely-fast-1",
+  input=[
+    {
+      "role": "user",
+      "content": "Hello!"
+    }
+  ],
+  stream=True
+)
+
+for event in response:
+  print(event)
+```
+
+```bash cURL
+curl https://fast.phonely.ai/openai/v1/responses \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $PHONELY_API_KEY" \
+  -d '{
+    "model": "phonely-fast-1",
+    "input": [
+      {
+        "role": "user",
+        "content": "What is the weather in San Francisco?"
+      }
+    ],
+    "states": {
+      "ignore_first_system_prompt": true,
+      "append_system_prompt": false,
+      "nodes": [
+        {
+          "type": "talk",
+          "id": "check_location",
+          "system_prompt": "Determine if the user is asking about weather and extract the location.",
+          "content": [
+            {
+              "role": "system",
+              "content": "Extract location from user query"
+            }
+          ]
+        }
+      ]
+    }
+  }'
+```
+
+```json Response
+{
+  "id": "resp_01jbd6g2qdfw2adyrt2az8hz4w",
+  "object": "response",
+  "created": 1730241104,
+  "model": "phonely-fast-1",
+  "events": [
+    {
+      "type": "node_start",
+      "node_id": "check_location",
+      "timestamp": 1730241104
+    },
+    {
+      "type": "content",
+      "node_id": "check_location",
+      "content": "Extracting location information...",
+      "timestamp": 1730241105
+    },
+    {
+      "type": "node_complete",
+      "node_id": "check_location",
+      "timestamp": 1730241106
+    },
+    {
+      "type": "node_start",
+      "node_id": "get_weather",
+      "timestamp": 1730241107
+    },
+    {
+      "type": "node_complete",
+      "node_id": "get_weather",
+      "timestamp": 1730241108
+    },
+    {
+      "type": "node_start",
+      "node_id": "respond_weather",
+      "timestamp": 1730241109
+    },
+    {
+      "type": "content",
+      "node_id": "respond_weather",
+      "content": "Currently in San Francisco, it's 68°F (20°C) and partly cloudy. There's a light breeze from the west at 8 mph.",
+      "timestamp": 1730241110
+    },
+    {
+      "type": "node_complete",
+      "node_id": "respond_weather",
+      "timestamp": 1730241111
+    }
+  ],
+  "usage": {
+    "total_tokens": 487,
+    "total_time": 7.2
+  }
+}
+```
+
+</CodeGroup>
+
+## Example Scenarios
+
+### Basic Request
+```bash
+curl https://fast.phonely.ai/openai/v1/responses \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $PHONELY_API_KEY" \
+  -d '{
+    "model": "phonely-fast-1",
+    "input": "What is the weather in New York?",
+    "states": {
+      "ignore_first_system_prompt": true,
+      "append_system_prompt": false,
+      "nodes": [
+        {
+          "type": "talk",
+          "id": "initial_response",
+          "system_prompt": "You are a helpful assistant.",
+          "content": [
+            {
+              "role": "user",
+              "content": "What is the weather in New York?"
+            }
+          ]
+        }
+      ]
+    }
+  }'
+```
+
+### Request with Variables and Tools
+```bash
+curl https://fast.phonely.ai/openai/v1/responses \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $PHONELY_API_KEY" \
+  -d '{
+    "model": "phonely-fast-1",
+    "input": "Book a flight to Paris for next week",
+    "states": {
+      "ignore_first_system_prompt": true,
+      "append_system_prompt": false,
+      "nodes": [
+        {
+          "type": "talk",
+          "id": "extract_details",
+          "system_prompt": "Extract flight booking details from the user request.",
+          "content": [
+            {
+              "role": "user",
+              "content": "Book a flight to Paris for next week"
+            }
+          ]
+        }
+      ]
+    },
+    "tools": [
+      {
+        "content": "Flight booking system available",
+        "role": "tool",
+        "tool_call_id": "booking_tool_1"
+      }
+    ],
+    "variables": [
+      {
+        "variable_name": "Destination",
+        "variable_id": "destination",
+        "extraction_description": "The destination city for the flight",
+        "format": {
+          "type": "string",
+          "description": "Name of a city"
+        }
+      },
+      {
+        "variable_name": "Travel Date",
+        "variable_id": "travel_date",
+        "extraction_description": "The date of travel",
+        "format": {
+          "type": "string",
+          "description": "Date in YYYY-MM-DD format"
+        }
+      },
+      {
+        "variable_name": "Class",
+        "variable_id": "class",
+        "extraction_description": "Travel class preference",
+        "format": {
+          "type": "list",
+          "options": ["Economy", "Business", "First"],
+          "description": "Preferred travel class"
+        }
+      }
+    ]
+  }'
+```
+
+### Request with API Integration
+```bash
+curl https://fast.phonely.ai/openai/v1/responses \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $PHONELY_API_KEY" \
+  -d '{
+    "model": "phonely-fast-1",
+    "input": "What is the current price of Bitcoin?",
+    "states": {
+      "ignore_first_system_prompt": true,
+      "append_system_prompt": false,
+      "nodes": [
+        {
+          "type": "api_request",
+          "id": "get_crypto_price",
+          "endpoint": "https://api.coingecko.com/api/v3/simple/price",
+          "method": "GET",
+          "content": [
+            {
+              "ids": "bitcoin",
+              "vs_currencies": "usd"
+            }
+          ]
+        },
+        {
+          "type": "talk",
+          "id": "respond_price",
+          "transition_condition": {
+            "condition": "has_price_data",
+            "required_variables": ["price_data"]
+          },
+          "system_prompt": "Respond with the current Bitcoin price.",
+          "content": [
+            {
+              "role": "system",
+              "content": "Generate response based on price data"
+            }
+          ]
+        }
+      ]
+    },
+    "variables": [
+      {
+        "variable_name": "Price Data",
+        "variable_id": "price_data",
+        "extraction_description": "Current cryptocurrency price information",
+        "format": {
+          "type": "object",
+          "description": "JSON object containing price details"
+        }
+      }
+    ]
+  }'
+```

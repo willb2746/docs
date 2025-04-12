@@ -1,0 +1,168 @@
+---
+title: 'State Management'
+description: 'Managing conversation state in your Phonely applications'
+icon: 'database'
+---
+
+# State Management
+
+Phonely provides robust state management capabilities that allow your applications to maintain context across multiple user interactions. This guide explains how to leverage state management effectively.
+
+## Understanding State in Phonely
+
+State in Phonely refers to the persistent information maintained between API calls. This allows your application to create natural, flowing conversations with users without losing context.
+
+<Note>
+  State management is available on all subscription tiers but with different retention periods based on your plan.
+</Note>
+
+## Session State
+
+Session state is automatically maintained for a configurable time period (default: 30 minutes) and is identified by a unique session ID.
+
+<CodeGroup>
+```json Example Session Creation
+{
+  "model": "phonely-fast-1",
+  "create_session": true,
+  "messages": [{
+    "role": "user",
+    "content": "Hello, I'd like to book a flight to Paris"
+  }]
+}
+```
+
+```json Response with Session ID
+{
+  "id": "chatcmpl-abc123",
+  "session_id": "sess_xyz789",
+  "choices": [
+    {
+      "message": {
+        "role": "assistant",
+        "content": "I'd be happy to help you book a flight to Paris. When would you like to travel, and from which city will you be departing?"
+      }
+    }
+  ]
+}
+```
+</CodeGroup>
+
+## Continuing the Conversation
+
+To continue a conversation within the same session, include the `session_id` in subsequent requests:
+
+<CodeGroup>
+```json Continuation Request
+{
+  "model": "phonely-fast-1",
+  "session_id": "sess_xyz789",
+  "messages": [{
+    "role": "user",
+    "content": "I'll be traveling from New York on July 15th"
+  }]
+}
+```
+
+```json Continuation Response
+{
+  "id": "chatcmpl-def456",
+  "session_id": "sess_xyz789",
+  "choices": [
+    {
+      "message": {
+        "role": "assistant",
+        "content": "Great! Would you prefer a morning or evening flight from New York to Paris on July 15th? And is this a one-way trip, or will you need a return flight as well?"
+      }
+    }
+  ]
+}
+```
+</CodeGroup>
+
+## Persistent Variables
+
+In addition to the automatic message history, you can store specific variables that will persist throughout the session:
+
+<CodeGroup>
+```json Setting Variables
+{
+  "model": "phonely-fast-1",
+  "session_id": "sess_xyz789",
+  "variables": {
+    "departure_city": "New York",
+    "destination": "Paris",
+    "departure_date": "2024-07-15",
+    "user_preference": "evening flights"
+  },
+  "messages": [{
+    "role": "user",
+    "content": "I prefer evening flights, by the way"
+  }]
+}
+```
+</CodeGroup>
+
+## State Expiration
+
+By default, session state expires after 30 minutes of inactivity. You can configure this by specifying a `state_ttl` in seconds:
+
+<CodeGroup>
+```json Custom State TTL
+{
+  "model": "phonely-fast-1",
+  "session_id": "sess_xyz789",
+  "state_ttl": 3600,
+  "messages": [{
+    "role": "user",
+    "content": "I'll be back in an hour to finalize my booking"
+  }]
+}
+```
+</CodeGroup>
+
+## Manually Clearing State
+
+To explicitly clear a session's state:
+
+<CodeGroup>
+```json Clear State
+{
+  "model": "phonely-fast-1",
+  "session_id": "sess_xyz789",
+  "clear_state": true,
+  "messages": [{
+    "role": "user",
+    "content": "Let's start over with a new booking"
+  }]
+}
+```
+</CodeGroup>
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Maintain Session IDs Client-Side">
+    Store session IDs securely on your client side to resume conversations.
+  </Accordion>
+  <Accordion title="Handle Session Expiration">
+    Implement graceful fallbacks for when sessions expire.
+  </Accordion>
+  <Accordion title="Use Variables for Critical Information">
+    Store important user data in variables rather than relying on the model to extract it from conversation history.
+  </Accordion>
+  <Accordion title="Consider Privacy Implications">
+    Be thoughtful about what data you store in session state, especially sensitive information.
+  </Accordion>
+</AccordionGroup>
+
+## Advanced Configuration
+
+For enterprise users, Phonely offers advanced state management options including:
+
+- Custom state backends
+- Encrypted state storage
+- Cross-session analytics
+- Extended retention periods
+
+Contact our [sales team](mailto:sales@phonely.ai) to learn more about these options. 

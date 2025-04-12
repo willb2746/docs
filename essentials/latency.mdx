@@ -1,0 +1,222 @@
+---
+title: 'Latency'
+description: 'Optimizing for ultra-low latency with Phonely'
+icon: 'bolt'
+---
+
+# Latency Optimization
+
+Phonely is designed from the ground up for ultra-low latency responses. This guide covers techniques and best practices to further optimize your application's response times.
+
+## Understanding Latency Metrics
+
+<Tabs>
+  <Tab title="End-to-End Latency">
+    Total time from when a request is sent to when the response is fully received. Affected by network conditions, request size, and model processing time.
+    
+    ```
+    End-to-End Latency = Network Latency + Queue Time + Processing Time + Response Transmission Time
+    ```
+  </Tab>
+  <Tab title="Time to First Token (TTFT)">
+    Time from sending a request until receiving the first token of the response. Critical for user perception of speed.
+    
+    ```
+    TTFT = Network Latency + Queue Time + Model Startup Time + First Token Generation
+    ```
+  </Tab>
+  <Tab title="Tokens per Second (TPS)">
+    Rate at which tokens are generated after the first token. Determines how quickly content appears for the user.
+    
+    ```
+    TPS = Total Tokens Generated / (Total Generation Time)
+    ```
+  </Tab>
+</Tabs>
+
+## Phonely Latency Performance
+
+The following table shows typical latency metrics for Phonely models:
+
+| Model | TTFT | Tokens per Second | Typical End-to-End (150 tokens) |
+| --- | --- | --- | --- |
+| phonely-fast-1 | 150ms | 120 TPS | 1.4s |
+| phonely-fast-2 | 200ms | 100 TPS | 1.7s |
+| phonely-compact | 100ms | 80 TPS | 1.9s |
+| phonely-vision | 300ms | 70 TPS | 2.4s |
+
+<Note>
+  These values represent optimal performance under typical conditions. Actual performance may vary based on request complexity, current load, and network conditions.
+</Note>
+
+## Optimizing Your API Requests
+
+<Steps>
+  <Step title="Select the right model">
+    For latency-sensitive applications, choose phonely-fast-1 or phonely-compact. Use larger models only when their specific capabilities are needed.
+  </Step>
+  <Step title="Enable streaming">
+    Always use streaming for chat interfaces to reduce perceived latency. The first tokens will begin appearing while the model is still generating the full response.
+    
+    ```json
+    {
+      "model": "phonely-fast-1",
+      "stream": true,
+      "messages": [...]
+    }
+    ```
+  </Step>
+  <Step title="Minimize prompt length">
+    Shorter prompts process faster. Only include essential context and instructions in your system messages.
+  </Step>
+  <Step title="Use response caching">
+    For common queries, implement response caching to eliminate model generation time completely.
+  </Step>
+</Steps>
+
+## Advanced Latency Optimization
+
+<AccordionGroup>
+  <Accordion title="Regional Endpoint Selection">
+    Choose the nearest API endpoint to your application servers. Phonely offers endpoints in multiple regions:
+    
+    - North America: `https://na.fast.phonely.ai/openai/v1`
+    - Europe: `https://eu.fast.phonely.ai/openai/v1`
+    - Asia Pacific: `https://ap.fast.phonely.ai/openai/v1`
+    
+    The default endpoint `https://fast.phonely.ai/openai/v1` uses geo-routing to automatically select the closest region.
+  </Accordion>
+  
+  <Accordion title="Connection Pooling">
+    Maintain persistent connections to the Phonely API to eliminate the overhead of connection establishment:
+    
+    ```javascript
+    // Node.js example with connection pooling
+    const https = require('https');
+    const agent = new https.Agent({ 
+      keepAlive: true, 
+      maxSockets: 50 
+    });
+    
+    async function makeRequest() {
+      return fetch('https://fast.phonely.ai/openai/v1/chat/completions', {
+        method: 'POST',
+        agent: agent,  // Reuse connections
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${PHONELY_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: 'phonely-fast-1',
+          messages: [...]
+        })
+      });
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Request Pipelining">
+    For complex workflows, start the next request before the current one completes:
+    
+    ```javascript
+    // Start processing the next step while waiting for user input
+    function startTypingPreparation(partialUserInput) {
+      const preparationPromise = fetch('https://fast.phonely.ai/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${PHONELY_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: 'phonely-fast-1',
+          messages: [
+            {
+              "role": "system",
+              "content": "Prepare relevant information about: " + partialUserInput
+            }
+          ]
+        })
+      });
+      
+      return preparationPromise; // Use this when user finishes typing
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Measuring and Monitoring Latency
+
+Implement proper monitoring to track your application's latency performance:
+
+<CodeGroup>
+```javascript Client-side Timing
+// Browser performance measurement
+const startTime = performance.now();
+
+// Make your API call
+const response = await fetch('https://fast.phonely.ai/openai/v1/chat/completions', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${PHONELY_API_KEY}`
+  },
+  body: JSON.stringify({
+    model: 'phonely-fast-1',
+    messages: [/* your messages */]
+  })
+});
+
+const responseData = await response.json();
+const endTime = performance.now();
+
+console.log(`Total latency: ${endTime - startTime}ms`);
+console.log(`API processing time: ${responseData.usage.total_time * 1000}ms`);
+```
+
+```python Server-side Timing
+import time
+import requests
+
+start_time = time.time()
+
+response = requests.post(
+    "https://fast.phonely.ai/openai/v1/chat/completions",
+    headers={
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {PHONELY_API_KEY}"
+    },
+    json={
+        "model": "phonely-fast-1",
+        "messages": [{"role": "user", "content": "Hello"}]
+    }
+)
+
+end_time = time.time()
+data = response.json()
+
+print(f"Total latency: {(end_time - start_time) * 1000}ms")
+print(f"API processing time: {data['usage']['total_time'] * 1000}ms")
+print(f"Network/overhead: {((end_time - start_time) * 1000) - (data['usage']['total_time'] * 1000)}ms")
+```
+</CodeGroup>
+
+## Enterprise Latency Solutions
+
+For applications with extreme latency requirements, Phonely offers enterprise solutions:
+
+<CardGroup cols={2}>
+  <Card title="Dedicated Instances" icon="server">
+    Dedicated model deployment with guaranteed compute resources
+  </Card>
+  <Card title="On-Premises Deployment" icon="building">
+    Deploy Phonely models within your own infrastructure
+  </Card>
+  <Card title="Custom Model Optimization" icon="gear">
+    Models specially tuned for your specific use cases
+  </Card>
+  <Card title="Priority Inference Queue" icon="ranking-star">
+    Skip the queue with prioritized inference for critical workloads
+  </Card>
+</CardGroup>
+
+Contact our [enterprise team](mailto:enterprise@phonely.ai) to discuss these options. 

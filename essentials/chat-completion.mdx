@@ -1,0 +1,298 @@
+---
+title: 'Chat Completion'
+description: 'Creating effective chat completions with the Phonely API'
+icon: 'comments'
+---
+
+# Chat Completion
+
+Chat completions are the core feature of the Phonely API, enabling natural, conversational interactions with our language models. This guide covers best practices and techniques for effective chat completion requests.
+
+## Basic Chat Structure
+
+A chat in Phonely consists of a series of messages, each with a specific role:
+
+<CodeGroup>
+```json Basic Chat Completion
+{
+  "model": "phonely-fast-1",
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are a helpful assistant that specializes in customer support for a software company."
+    },
+    {
+      "role": "user",
+      "content": "I'm having trouble logging into my account. Can you help?"
+    }
+  ]
+}
+```
+</CodeGroup>
+
+## Message Roles
+
+<CardGroup cols={3}>
+  <Card title="System" icon="gear">
+    Provides overall instructions and context that guide the model's behavior
+  </Card>
+  <Card title="User" icon="user">
+    Contains messages from the end user
+  </Card>
+  <Card title="Assistant" icon="robot">
+    Contains previous responses from the model
+  </Card>
+</CardGroup>
+
+## System Messages
+
+System messages help set the behavior, personality, and knowledge boundaries of the assistant. They're invisible to the end user but crucial for the model.
+
+<CodeGroup>
+```json Effective System Message
+{
+  "model": "phonely-fast-1",
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are a friendly virtual travel agent named Alex. You help users plan vacations by recommending destinations, accommodation, and activities based on their preferences. Provide concise responses, focusing on practical advice. Always start by asking about the user's budget and travel dates if not provided."
+    },
+    {
+      "role": "user",
+      "content": "I want to go somewhere warm this winter."
+    }
+  ]
+}
+```
+</CodeGroup>
+
+<Tip>
+  Keep system messages clear and specific. The more precise your instructions, the more consistent the model's responses will be.
+</Tip>
+
+## Maintaining Context
+
+For a natural conversation flow, include previous messages in subsequent requests:
+
+<CodeGroup>
+```json Conversation History
+{
+  "model": "phonely-fast-1",
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are a helpful math tutor."
+    },
+    {
+      "role": "user",
+      "content": "Can you explain how to solve quadratic equations?"
+    },
+    {
+      "role": "assistant",
+      "content": "Certainly! Quadratic equations are in the form ax² + bx + c = 0. To solve them, you can use the quadratic formula: x = (-b ± √(b² - 4ac)) / 2a. Would you like me to walk you through an example?"
+    },
+    {
+      "role": "user",
+      "content": "Yes, please show me how to solve x² - 5x + 6 = 0"
+    }
+  ]
+}
+```
+</CodeGroup>
+
+<Note>
+  While you can manually manage conversation history, consider using Phonely's [State Management](/essentials/state-management) for a more efficient approach.
+</Note>
+
+## Temperature and Randomness
+
+Control the creativity and randomness of responses with the `temperature` parameter:
+
+<CodeGroup>
+```json Temperature Examples
+{
+  "model": "phonely-fast-1",
+  "temperature": 0.2,  // More deterministic, focused responses
+  "messages": [
+    {
+      "role": "user",
+      "content": "What's the capital of France?"
+    }
+  ]
+}
+```
+
+```json Creative Response
+{
+  "model": "phonely-fast-1",
+  "temperature": 0.8,  // More creative, varied responses
+  "messages": [
+    {
+      "role": "user",
+      "content": "Write a short poem about autumn"
+    }
+  ]
+}
+```
+</CodeGroup>
+
+<table>
+  <tr>
+    <th>Temperature Range</th>
+    <th>Best Used For</th>
+  </tr>
+  <tr>
+    <td>0.0 - 0.3</td>
+    <td>Factual responses, Q&A, technical support</td>
+  </tr>
+  <tr>
+    <td>0.4 - 0.7</td>
+    <td>Balanced conversational responses</td>
+  </tr>
+  <tr>
+    <td>0.8 - 1.0</td>
+    <td>Creative writing, brainstorming, variety</td>
+  </tr>
+</table>
+
+## Streaming Responses
+
+For a more interactive experience, especially in chat interfaces, enable streaming:
+
+<CodeGroup>
+```json Streaming Request
+{
+  "model": "phonely-fast-1",
+  "stream": true,
+  "messages": [
+    {
+      "role": "user",
+      "content": "Tell me a story about a space explorer"
+    }
+  ]
+}
+```
+
+```javascript Client Example (Node.js)
+const response = await fetch('https://fast.phonely.ai/openai/v1/chat/completions', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${PHONELY_API_KEY}`
+  },
+  body: JSON.stringify({
+    model: 'phonely-fast-1',
+    stream: true,
+    messages: [{ role: 'user', content: 'Tell me a story about a space explorer' }]
+  })
+});
+
+// Process the stream
+const reader = response.body.getReader();
+const decoder = new TextDecoder();
+
+while (true) {
+  const { done, value } = await reader.read();
+  if (done) break;
+  
+  // Process each chunk
+  const chunk = decoder.decode(value);
+  const lines = chunk.split('\n').filter(line => line.trim() !== '');
+  
+  for (const line of lines) {
+    if (line.startsWith('data: ')) {
+      const data = line.substring(6);
+      if (data === '[DONE]') continue;
+      
+      try {
+        const parsedData = JSON.parse(data);
+        const content = parsedData.choices[0]?.delta?.content || '';
+        if (content) {
+          // Append content to your UI
+          console.log(content);
+        }
+      } catch (e) {
+        console.error('Error parsing chunk:', e);
+      }
+    }
+  }
+}
+```
+</CodeGroup>
+
+## Function Calling
+
+Phonely supports function calling to integrate with external tools and APIs:
+
+<CodeGroup>
+```json Function Calling Example
+{
+  "model": "phonely-fast-1",
+  "messages": [
+    {
+      "role": "user",
+      "content": "What's the weather like in San Francisco today?"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "get_weather",
+        "description": "Get the current weather in a given location",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "location": {
+              "type": "string",
+              "description": "The city and state, e.g. San Francisco, CA"
+            },
+            "unit": {
+              "type": "string",
+              "enum": ["celsius", "fahrenheit"],
+              "description": "The temperature unit to use"
+            }
+          },
+          "required": ["location"]
+        }
+      }
+    }
+  ],
+  "tool_choice": "auto"
+}
+```
+</CodeGroup>
+
+For more details on using functions, see the [Function Calling](/guides/tutorials/function-calling) tutorial.
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Keep system messages focused">
+    Provide clear, concise instructions in system messages. Focus on defining the assistant's behavior and knowledge boundaries.
+  </Accordion>
+  
+  <Accordion title="Optimize token usage">
+    Be mindful of token limits. Use succinct prompts and consider summarizing lengthy conversation histories.
+  </Accordion>
+  
+  <Accordion title="Error handling">
+    Implement robust error handling for API requests, especially for streaming responses and function calls.
+  </Accordion>
+  
+  <Accordion title="Use appropriate temperature">
+    Match temperature settings to your use case: lower for factual responses, higher for creative tasks.
+  </Accordion>
+</AccordionGroup>
+
+## Rate Limits and Quotas
+
+Be aware of rate limits when sending multiple chat completion requests:
+
+| Plan | Rate Limit | Daily Quota |
+| --- | --- | --- |
+| Free | 20 requests/minute | 200 requests/day |
+| Pro | 60 requests/minute | Unlimited |
+| Enterprise | Custom | Custom |
+
+For high-volume applications, consider implementing a request queue or reaching out to our [sales team](mailto:sales@phonely.ai) for custom quota arrangements. 

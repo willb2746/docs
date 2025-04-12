@@ -1,0 +1,10 @@
+[
+  {
+    "source": "/api-reference",
+    "destination": "/api-reference/index"
+  },
+  {
+    "source": "/chat/create-response",
+    "destination": "/api-reference/chat/create-response"
+  }
+] 

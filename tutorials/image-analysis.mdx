@@ -1,0 +1,737 @@
+---
+title: 'Image Analysis'
+description: 'Learn how to analyze and understand images using Phonely'
+---
+
+# Image Analysis with Phonely
+
+This tutorial demonstrates how to integrate image analysis capabilities into your applications using Phonely's multimodal models. With image analysis, your application can understand, describe, and extract information from images, opening up a wide range of use cases from content moderation to visual search.
+
+## Prerequisites
+
+Before getting started, ensure you have:
+- A Phonely API key with access to multimodal models
+- Basic familiarity with JavaScript/Node.js
+- Node.js and npm installed on your machine
+
+## Understanding Multimodal Capabilities
+
+Phonely's multimodal models can:
+
+<CardGroup cols={2}>
+  <Card title="Describe Images" icon="comment-dots">
+    Generate detailed descriptions of image content
+  </Card>
+  <Card title="Answer Questions" icon="circle-question">
+    Answer specific questions about image content
+  </Card>
+  <Card title="Extract Information" icon="magnifying-glass">
+    Extract text, data, and key information from images
+  </Card>
+  <Card title="Classify Content" icon="tags">
+    Categorize and classify images automatically
+  </Card>
+</CardGroup>
+
+## Basic Image Analysis Implementation
+
+Let's start with a simple implementation that analyzes an image and describes its content:
+
+<CodeGroup>
+```javascript Basic Image Analysis
+const fetch = require('node-fetch');
+const fs = require('fs');
+const FormData = require('form-data');
+
+async function analyzeImage(imagePath, prompt = "Describe this image in detail.") {
+  // Ensure the image exists
+  if (!fs.existsSync(imagePath)) {
+    throw new Error(`Image not found at path: ${imagePath}`);
+  }
+  
+  // Read the image file as a buffer
+  const imageBuffer = fs.readFileSync(imagePath);
+  
+  // Encode the image as base64
+  const base64Image = imageBuffer.toString('base64');
+  
+  // Make the API request
+  const response = await fetch('https://fast.phonely.ai/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${process.env.PHONELY_API_KEY}`
+    },
+    body: JSON.stringify({
+      model: 'phonely-vision-1', // Use the multimodal model
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: prompt },
+            {
+              type: 'image_url',
+              image_url: {
+                url: `data:image/jpeg;base64,${base64Image}`
+              }
+            }
+          ]
+        }
+      ],
+      max_tokens: 300
+    })
+  });
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`API request failed: ${errorText}`);
+  }
+  
+  const result = await response.json();
+  return result.choices[0].message.content;
+}
+
+// Example usage
+async function main() {
+  try {
+    const description = await analyzeImage('./sample-image.jpg');
+    console.log('Image Analysis Result:');
+    console.log(description);
+  } catch (error) {
+    console.error('Error analyzing image:', error);
+  }
+}
+
+main();
+```
+
+```python Python Implementation
+import requests
+import base64
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+def analyze_image(image_path, prompt="Describe this image in detail."):
+    # Ensure the image exists
+    if not os.path.exists(image_path):
+        raise FileNotFoundError(f"Image not found at path: {image_path}")
+    
+    # Read and encode the image
+    with open(image_path, "rb") as image_file:
+        base64_image = base64.b64encode(image_file.read()).decode('utf-8')
+    
+    # Prepare the API request
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {os.getenv('PHONELY_API_KEY')}"
+    }
+    
+    payload = {
+        "model": "phonely-vision-1",
+        "messages": [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": prompt},
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/jpeg;base64,{base64_image}"
+                        }
+                    }
+                ]
+            }
+        ],
+        "max_tokens": 300
+    }
+    
+    # Make the API request
+    response = requests.post(
+        "https://fast.phonely.ai/openai/v1/chat/completions",
+        headers=headers,
+        json=payload
+    )
+    
+    if response.status_code != 200:
+        raise Exception(f"API request failed with status {response.status_code}: {response.text}")
+    
+    result = response.json()
+    return result["choices"][0]["message"]["content"]
+
+# Example usage
+if __name__ == "__main__":
+    try:
+        description = analyze_image("./sample-image.jpg")
+        print("Image Analysis Result:")
+        print(description)
+    except Exception as e:
+        print(f"Error analyzing image: {e}")
+```
+</CodeGroup>
+
+## Building a Complete Image Analysis Web App
+
+Let's build a simple web application that allows users to upload images and analyze them:
+
+<CodeGroup>
+```javascript Web App Server (Node.js/Express)
+const express = require('express');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+const fetch = require('node-fetch');
+require('dotenv').config();
+
+const app = express();
+const port = process.env.PORT || 3000;
+
+// Configure storage for uploaded images
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/');
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + path.extname(file.originalname));
+  }
+});
+
+// Create uploads directory if it doesn't exist
+if (!fs.existsSync('uploads')) {
+  fs.mkdirSync('uploads');
+}
+
+// Initialize multer with storage options
+const upload = multer({ 
+  storage: storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /jpeg|jpg|png|gif/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+    
+    if (extname && mimetype) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed!'));
+    }
+  }
+});
+
+// Serve static files
+app.use(express.static('public'));
+app.use(express.json());
+
+// Handle image upload and analysis
+app.post('/analyze', upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No image uploaded' });
+    }
+    
+    const imagePath = req.file.path;
+    const analysisPrompt = req.body.prompt || "Describe this image in detail.";
+    
+    // Read and encode the image
+    const imageBuffer = fs.readFileSync(imagePath);
+    const base64Image = imageBuffer.toString('base64');
+    
+    // Make API request to Phonely
+    const response = await fetch('https://fast.phonely.ai/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.PHONELY_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: 'phonely-vision-1',
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: analysisPrompt },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: `data:image/jpeg;base64,${base64Image}`
+                }
+              }
+            ]
+          }
+        ],
+        max_tokens: 500
+      })
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`API request failed: ${errorText}`);
+    }
+    
+    const result = await response.json();
+    const analysis = result.choices[0].message.content;
+    
+    // Return analysis results
+    res.json({ 
+      success: true, 
+      analysis,
+      imagePath: `/uploads/${path.basename(imagePath)}`
+    });
+    
+  } catch (error) {
+    console.error('Error analyzing image:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Start the server
+app.listen(port, () => {
+  console.log(`Server running on http://localhost:${port}`);
+});
+```
+
+```html Frontend (HTML/JS)
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Phonely Image Analysis</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .container {
+      background-color: #f5f5f5;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #16A34A;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .upload-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      border: 2px dashed #ccc;
+      border-radius: 8px;
+      background-color: white;
+      margin-bottom: 20px;
+    }
+    .upload-container.drag-over {
+      border-color: #16A34A;
+      background-color: rgba(22, 163, 74, 0.05);
+    }
+    .upload-container p {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #666;
+    }
+    .hidden {
+      display: none;
+    }
+    .btn {
+      background-color: #16A34A;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      margin-top: 10px;
+    }
+    .btn:hover {
+      background-color: #138a3f;
+    }
+    .btn:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+    .results {
+      margin-top: 30px;
+      display: none;
+    }
+    .results-container {
+      display: flex;
+      gap: 20px;
+      margin-top: 20px;
+    }
+    .image-preview {
+      flex: 1;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .image-preview img {
+      max-width: 100%;
+      display: block;
+    }
+    .analysis-result {
+      flex: 1;
+      background-color: white;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .loader {
+      text-align: center;
+      display: none;
+      margin: 20px 0;
+    }
+    .spinner {
+      border: 4px solid rgba(0, 0, 0, 0.1);
+      border-radius: 50%;
+      border-top: 4px solid #16A34A;
+      width: 30px;
+      height: 30px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto;
+    }
+    .prompt-container {
+      margin-top: 20px;
+    }
+    .prompt-container textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      min-height: 80px;
+      resize: vertical;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .error {
+      color: #d9534f;
+      text-align: center;
+      margin-top: 10px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Phonely Image Analysis</h1>
+    
+    <div class="upload-container" id="upload-area">
+      <p>Drag and drop an image here, or click to select a file</p>
+      <input type="file" id="file-input" accept="image/*" class="hidden">
+      <button class="btn" id="select-btn">Select Image</button>
+    </div>
+    
+    <div class="prompt-container">
+      <p>What would you like to know about this image?</p>
+      <textarea id="prompt-input" placeholder="Describe this image in detail."></textarea>
+    </div>
+    
+    <button class="btn" id="analyze-btn" disabled>Analyze Image</button>
+    
+    <div class="loader" id="loader">
+      <div class="spinner"></div>
+      <p>Analyzing image...</p>
+    </div>
+    
+    <div class="error" id="error-message"></div>
+    
+    <div class="results" id="results">
+      <h2>Analysis Results</h2>
+      <div class="results-container">
+        <div class="image-preview">
+          <img id="preview-image" src="" alt="Uploaded image">
+        </div>
+        <div class="analysis-result">
+          <p id="analysis-text"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const uploadArea = document.getElementById('upload-area');
+      const fileInput = document.getElementById('file-input');
+      const selectBtn = document.getElementById('select-btn');
+      const analyzeBtn = document.getElementById('analyze-btn');
+      const loader = document.getElementById('loader');
+      const results = document.getElementById('results');
+      const previewImage = document.getElementById('preview-image');
+      const analysisText = document.getElementById('analysis-text');
+      const promptInput = document.getElementById('prompt-input');
+      const errorMessage = document.getElementById('error-message');
+      
+      let selectedFile = null;
+      
+      // Handle file selection via button
+      selectBtn.addEventListener('click', () => {
+        fileInput.click();
+      });
+      
+      // Handle file selection
+      fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+          selectedFile = e.target.files[0];
+          displayImagePreview(selectedFile);
+          analyzeBtn.disabled = false;
+        }
+      });
+      
+      // Handle drag and drop
+      uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('drag-over');
+      });
+      
+      uploadArea.addEventListener('dragleave', () => {
+        uploadArea.classList.remove('drag-over');
+      });
+      
+      uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('drag-over');
+        
+        if (e.dataTransfer.files.length > 0) {
+          selectedFile = e.dataTransfer.files[0];
+          displayImagePreview(selectedFile);
+          analyzeBtn.disabled = false;
+        }
+      });
+      
+      // Handle analyze button click
+      analyzeBtn.addEventListener('click', async () => {
+        if (!selectedFile) return;
+        
+        try {
+          // Show loader and hide any previous results or errors
+          loader.style.display = 'block';
+          results.style.display = 'none';
+          errorMessage.style.display = 'none';
+          analyzeBtn.disabled = true;
+          
+          const formData = new FormData();
+          formData.append('image', selectedFile);
+          formData.append('prompt', promptInput.value || 'Describe this image in detail.');
+          
+          const response = await fetch('/analyze', {
+            method: 'POST',
+            body: formData
+          });
+          
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to analyze image');
+          }
+          
+          const data = await response.json();
+          
+          // Display results
+          analysisText.textContent = data.analysis;
+          results.style.display = 'block';
+          
+        } catch (error) {
+          console.error('Error:', error);
+          errorMessage.textContent = error.message;
+          errorMessage.style.display = 'block';
+        } finally {
+          loader.style.display = 'none';
+          analyzeBtn.disabled = false;
+        }
+      });
+      
+      // Display image preview
+      function displayImagePreview(file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          previewImage.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  </script>
+</body>
+</html>
+```
+</CodeGroup>
+
+## Advanced Use Cases
+
+Let's explore some specialized use cases for image analysis:
+
+### Visual QA with Specific Questions
+
+<CodeGroup>
+```javascript Image Question Answering
+async function askImageQuestion(imagePath, question) {
+  // Code setup similar to analyzeImage function...
+  
+  const response = await fetch('https://fast.phonely.ai/openai/v1/chat/completions', {
+    // Headers and basic config as before...
+    body: JSON.stringify({
+      model: 'phonely-vision-1',
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: question },
+            {
+              type: 'image_url',
+              image_url: {
+                url: `data:image/jpeg;base64,${base64Image}`
+              }
+            }
+          ]
+        }
+      ],
+      max_tokens: 150
+    })
+  });
+  
+  // Process response as before...
+}
+
+// Example questions you could ask:
+// askImageQuestion('./product.jpg', 'What brand is this product?');
+// askImageQuestion('./document.jpg', 'Extract the invoice number from this document.');
+// askImageQuestion('./chart.jpg', 'What is the trend shown in this chart?');
+```
+</CodeGroup>
+
+### OCR and Document Processing
+
+<CodeGroup>
+```javascript Document Text Extraction
+async function extractDocumentText(imagePath) {
+  // Similar setup to previous examples...
+  
+  const response = await fetch('https://fast.phonely.ai/openai/v1/chat/completions', {
+    // Headers and basic config...
+    body: JSON.stringify({
+      model: 'phonely-vision-1',
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { 
+              type: 'text', 
+              text: 'Extract all the text from this document, preserving its structure. Format tables properly.' 
+            },
+            {
+              type: 'image_url',
+              image_url: {
+                url: `data:image/jpeg;base64,${base64Image}`
+              }
+            }
+          ]
+        }
+      ],
+      max_tokens: 800
+    })
+  });
+  
+  // Process response...
+}
+```
+</CodeGroup>
+
+### Multiple Images Analysis
+
+You can also analyze multiple images in a single request:
+
+<CodeGroup>
+```javascript Multiple Images
+async function compareImages(imagePath1, imagePath2, prompt) {
+  // Read and encode both images
+  const image1Buffer = fs.readFileSync(imagePath1);
+  const image2Buffer = fs.readFileSync(imagePath2);
+  
+  const base64Image1 = image1Buffer.toString('base64');
+  const base64Image2 = image2Buffer.toString('base64');
+  
+  const response = await fetch('https://fast.phonely.ai/openai/v1/chat/completions', {
+    // Headers setup...
+    body: JSON.stringify({
+      model: 'phonely-vision-1',
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: prompt || 'Compare these two images and describe the differences.' },
+            {
+              type: 'image_url',
+              image_url: {
+                url: `data:image/jpeg;base64,${base64Image1}`
+              }
+            },
+            {
+              type: 'image_url',
+              image_url: {
+                url: `data:image/jpeg;base64,${base64Image2}`
+              }
+            }
+          ]
+        }
+      ],
+      max_tokens: 500
+    })
+  });
+  
+  // Process response...
+}
+```
+</CodeGroup>
+
+## Performance Optimization
+
+For better performance when working with image analysis:
+
+<Steps>
+  <Step title="Resize images before upload">
+    Scale down large images to reduce upload time and token usage
+  </Step>
+  <Step title="Use appropriate prompts">
+    Be specific in your prompts to get more focused and relevant results
+  </Step>
+  <Step title="Cache results when possible">
+    If analyzing the same image multiple times, cache the results
+  </Step>
+  <Step title="Compress images">
+    Use JPEG compression with reasonable quality settings (75-85%) for most use cases
+  </Step>
+</Steps>
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Content Moderation">
+    When building public-facing applications, implement content moderation to prevent misuse. You can use Phonely to pre-screen images before analysis.
+  </Accordion>
+  <Accordion title="Error Handling">
+    Implement robust error handling for issues like invalid images, network failures, and API limits.
+  </Accordion>
+  <Accordion title="User Privacy">
+    Be transparent about how user-uploaded images are stored and processed. Consider implementing automatic deletion policies.
+  </Accordion>
+  <Accordion title="Result Caching">
+    Implement caching strategies for frequently analyzed images to reduce API costs and improve response times.
+  </Accordion>
+</AccordionGroup>
+
+## Conclusion
+
+Image analysis with Phonely offers powerful capabilities for understanding and extracting information from visual content. By following this tutorial, you've learned how to:
+
+1. Analyze images using Phonely's multimodal models
+2. Build a complete web application for image analysis
+3. Implement specialized use cases like document OCR and visual QA
+4. Optimize performance for image processing
+
+With these tools and techniques, you can enhance your applications with intelligent image understanding, creating more engaging and valuable experiences for your users. 

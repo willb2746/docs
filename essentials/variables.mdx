@@ -1,0 +1,202 @@
+---
+title: 'Variables'
+description: 'Using variables to enhance your Phonely LLM applications'
+icon: 'code-branch'
+---
+
+# Variables
+
+Variables in Phonely allow you to store and manipulate data throughout a conversation, enabling more dynamic and personalized interactions. This guide covers how to effectively use variables in your applications.
+
+## Variable Types
+
+Phonely supports several types of variables:
+
+<CardGroup cols={2}>
+  <Card title="Session Variables" icon="clock" href="#session-variables">
+    Persist for the duration of a conversation session
+  </Card>
+  <Card title="System Variables" icon="gear" href="#system-variables">
+    Pre-defined variables available to all conversations
+  </Card>
+  <Card title="User Variables" icon="user" href="#user-variables">
+    Store user-specific information across sessions
+  </Card>
+  <Card title="Temporary Variables" icon="bolt" href="#temporary-variables">
+    Short-lived variables for immediate operations
+  </Card>
+</CardGroup>
+
+## Session Variables
+
+Session variables persist throughout a conversation and are automatically included in the context for each message. They're ideal for tracking information like user preferences or conversation state.
+
+<CodeGroup>
+```json Setting Session Variables
+{
+  "model": "phonely-fast-1",
+  "session_id": "sess_xyz789",
+  "variables": {
+    "username": "Alice",
+    "preferred_language": "Spanish",
+    "subscription_tier": "premium"
+  },
+  "messages": [{
+    "role": "user",
+    "content": "How do I change my preferences?"
+  }]
+}
+```
+
+```json Accessing in the Response
+{
+  "id": "chatcmpl-abc123",
+  "session_id": "sess_xyz789",
+  "choices": [
+    {
+      "message": {
+        "role": "assistant",
+        "content": "Hello Alice! You can change your preferences in the settings menu. Since you're on our premium tier, you'll have access to additional customization options. Would you like me to continue in Spanish?"
+      }
+    }
+  ]
+}
+```
+</CodeGroup>
+
+## System Variables
+
+System variables are automatically populated by the Phonely platform and provide useful context about the current environment.
+
+| Variable | Description | Example Value |
+| --- | --- | --- |
+| `{{system.date}}` | Current date | `2024-05-04` |
+| `{{system.time}}` | Current time | `14:30:45` |
+| `{{system.timezone}}` | User timezone if available | `America/New_York` |
+| `{{system.language}}` | Detected language | `en-US` |
+| `{{system.client}}` | Client type | `web`, `ios`, `android` |
+| `{{system.api_version}}` | Current API version | `v1` |
+
+## User Variables
+
+User variables are associated with specific users rather than just sessions, allowing for personalization across different conversations.
+
+<CodeGroup>
+```json Setting User Variables
+{
+  "model": "phonely-fast-1",
+  "user_id": "user_123456",
+  "user_variables": {
+    "account_type": "business",
+    "company_name": "Acme Corp",
+    "industry": "manufacturing",
+    "onboarding_complete": true
+  },
+  "messages": [{
+    "role": "user",
+    "content": "Show me my dashboard"
+  }]
+}
+```
+</CodeGroup>
+
+<Note>
+  User variables require user authentication and proper authorization. Make sure to implement appropriate security measures for user-specific data.
+</Note>
+
+## Temporary Variables
+
+Temporary variables exist only for the duration of a single API call and are useful for intermediate calculations or formatting.
+
+<CodeGroup>
+```json Using Temporary Variables
+{
+  "model": "phonely-fast-1",
+  "session_id": "sess_xyz789",
+  "temp_variables": {
+    "search_query": "flights to Paris",
+    "max_results": 5,
+    "sort_by": "price"
+  },
+  "messages": [{
+    "role": "user",
+    "content": "Find me the cheapest flights to Paris"
+  }]
+}
+```
+</CodeGroup>
+
+## Variable Expressions
+
+Phonely supports simple expressions in variables, allowing for dynamic content generation:
+
+<CodeGroup>
+```json Variable Expressions
+{
+  "model": "phonely-fast-1",
+  "session_id": "sess_xyz789",
+  "variables": {
+    "base_price": 100,
+    "tax_rate": 0.08,
+    "total_price": "{{base_price * (1 + tax_rate)}}",
+    "greeting": "Hello {{username}}! Your total is ${{total_price}}."
+  },
+  "messages": [{
+    "role": "user",
+    "content": "What's my order total?"
+  }]
+}
+```
+</CodeGroup>
+
+## Variable Scopes and Lifetime
+
+| Variable Type | Scope | Lifetime | Storage Location |
+| --- | --- | --- | --- |
+| Session | Session | Session duration (configurable) | Phonely servers |
+| System | Global | Request duration | Generated per request |
+| User | User | Persistent (account-bound) | Secure user database |
+| Temporary | Request | Single request | In-memory only |
+
+## Best Practices
+
+<Steps>
+  <Step title="Use descriptive variable names">
+    Choose clear, self-explanatory names for variables to make your code more maintainable.
+  </Step>
+  <Step title="Keep sensitive data secure">
+    Never store passwords, credit card numbers, or other sensitive information in variables.
+  </Step>
+  <Step title="Validate user input">
+    Always validate and sanitize user input before storing it in variables.
+  </Step>
+  <Step title="Handle missing variables gracefully">
+    Implement fallbacks for when variables might not be present.
+  </Step>
+</Steps>
+
+## Example: Building a Personal Shopping Assistant
+
+<CodeGroup>
+```json Complete Example
+{
+  "model": "phonely-fast-1",
+  "session_id": "sess_abc123",
+  "user_id": "user_456789",
+  "variables": {
+    "cart_items": ["Laptop", "Wireless Mouse", "Headphones"],
+    "cart_total": 1299.97,
+    "discount_applied": true,
+    "discount_percentage": 15,
+    "final_price": "{{cart_total * (1 - discount_percentage/100)}}",
+    "shipping_address": "123 Main St, Anytown, USA"
+  },
+  "messages": [{
+    "role": "user",
+    "content": "Can you summarize my order?"
+  }]
+}
+```
+</CodeGroup>
+
+By leveraging variables effectively, you can create more dynamic, personalized, and context-aware LLM applications. 

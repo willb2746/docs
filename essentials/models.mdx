@@ -1,0 +1,93 @@
+---
+title: 'Models'
+description: 'Overview of available language models in Phonely'
+icon: 'brain'
+---
+
+# Language Models
+
+Phonely offers several high-performance language models optimized for different use cases. Our models are designed to deliver superior speed without compromising on quality.
+
+## Available Models
+
+<CardGroup cols={2}>
+  <Card title="phonely-fast-1" icon="bolt" href="#phonely-fast-1">
+    Our flagship fast model with excellent performance across a wide range of tasks
+  </Card>
+  <Card title="phonely-fast-2" icon="bolt-lightning" href="#phonely-fast-2">
+    Enhanced version with improved reasoning capabilities
+  </Card>
+  <Card title="phonely-compact" icon="microchip" href="#phonely-compact">
+    Small, efficient model optimized for edge deployment
+  </Card>
+  <Card title="phonely-vision" icon="eye" href="#phonely-vision">
+    Multimodal model capable of processing both text and images
+  </Card>
+</CardGroup>
+
+## Model Details
+
+### phonely-fast-1
+
+<Attributes>
+  <Attribute name="Context Length" value="16K tokens" />
+  <Attribute name="Training Data" value="Up to December 2023" />
+  <Attribute name="Strengths" value="General purpose, low latency, high throughput" />
+  <Attribute name="Pricing" value="$0.50 per million tokens" />
+</Attributes>
+
+Our primary model balances speed and quality for most general-purpose applications. Ideal for chat interfaces, content generation, and applications where responsiveness is crucial.
+
+### phonely-fast-2
+
+<Attributes>
+  <Attribute name="Context Length" value="32K tokens" />
+  <Attribute name="Training Data" value="Up to March 2024" />
+  <Attribute name="Strengths" value="Advanced reasoning, code generation, longer context" />
+  <Attribute name="Pricing" value="$0.80 per million tokens" />
+</Attributes>
+
+An enhanced version of our base model with improved reasoning capabilities and longer context window. Best for complex tasks requiring deeper understanding and memory.
+
+### phonely-compact
+
+<Attributes>
+  <Attribute name="Context Length" value="8K tokens" />
+  <Attribute name="Training Data" value="Up to December 2023" />
+  <Attribute name="Strengths" value="Lightweight, edge deployment, low resource usage" />
+  <Attribute name="Pricing" value="$0.25 per million tokens" />
+</Attributes>
+
+Optimized for edge deployment and resource-constrained environments. Maintains good quality while requiring significantly less computational resources.
+
+### phonely-vision
+
+<Attributes>
+  <Attribute name="Context Length" value="16K tokens + 16 images" />
+  <Attribute name="Training Data" value="Up to March 2024" />
+  <Attribute name="Strengths" value="Image understanding, multimodal reasoning" />
+  <Attribute name="Pricing" value="$1.20 per million tokens + $0.02 per image" />
+</Attributes>
+
+Our multimodal model capable of processing both text and images. Ideal for applications requiring visual understanding alongside text comprehension.
+
+## Model Selection
+
+Choosing the right model depends on your specific use case:
+
+<Steps>
+  <Step title="Consider your latency requirements">
+    If ultra-low latency is critical, phonely-fast-1 or phonely-compact are your best options.
+  </Step>
+  <Step title="Evaluate context needs">
+    For applications requiring longer context or more complex reasoning, phonely-fast-2 is recommended.
+  </Step>
+  <Step title="Check for multimodal requirements">
+    If your application needs to process images alongside text, phonely-vision is required.
+  </Step>
+  <Step title="Balance cost and performance">
+    For cost-sensitive applications, phonely-compact offers the best price-performance ratio.
+  </Step>
+</Steps>
+
+For detailed benchmarks comparing model performance across different tasks, visit our [model performance dashboard](https://dashboard.phonely.ai/benchmarks). 
